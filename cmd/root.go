@@ -165,8 +165,11 @@ func Run(c *cobra.Command, names []string) {
 
 	if runOnce {
 		writeStartupMessage(c, time.Time{}, filterDesc)
-		runUpdatesWithNotifications(filter)
+		metric := runUpdatesWithNotifications(filter)
 		notifier.Close()
+		if metric == nil {
+			os.Exit(1)
+		}
 		os.Exit(0)
 		return
 	}
@@ -374,6 +377,10 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		log.Error(err)
 	}
 	notifier.SendNotification(result)
+	if err != nil {
+		// A failed scan has no report; nil metrics mark it as skipped.
+		return nil
+	}
 	metricResults := metrics.NewMetric(result)
 	notifications.LocalLog.WithFields(log.Fields{
 		"Scanned": metricResults.Scanned,

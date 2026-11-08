@@ -1,7 +1,8 @@
 <div align="center">
 
-  ### ⚠️ This project is no longer maintained
-  See https://github.com/containrrr/watchtower/discussions/2135 for details.
+  ### Fork with updated Docker Engine API support
+  The original upstream project is no longer maintained; see its maintenance notice at https://github.com/containrrr/watchtower/discussions/2135.
+  This fork uses the supported Moby client/API modules and automatic API version negotiation.
 
   ---
   
@@ -24,6 +25,35 @@
 
 </div>
 
+## Build this fork
+
+Requirements: Go 1.26.0 or newer (the container build uses Go 1.27.3), or Docker with BuildKit. The Docker daemon must support API 1.40 or newer. Containers retaining a legacy container-wide `Config.MacAddress` are deliberately excluded from automatic recreation rather than risk changing their MAC; see [configuration-preservation boundaries](docs/docker-api-upgrade.md#configuration-preservation-boundaries).
+
+```sh
+go test ./...
+go build -o watchtower .
+WATCHTOWER_INTEGRATION=1 bash scripts/verify.sh
+docker build -f dockerfiles/Dockerfile.self-contained -t watchtower:local .
+```
+
+Both self-contained Dockerfiles build and test the **local checkout**, not the archived upstream repository. Base images are pinned by version and digest. No registry publishing is performed by these commands.
+
+Do not set `DOCKER_API_VERSION` or `--api-version` unless an exact version is required. Remove old pins such as `1.25` from Compose or environment files; an explicit `--api-version=` also restores negotiation. See [Docker API version](docs/arguments.md#docker-api-version).
+
+For a non-mutating connectivity check, use an explicit container name and disable pulls:
+
+```sh
+docker run --rm \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  watchtower:local --run-once --monitor-only --no-pull your-container-name
+```
+
+The Docker socket grants control over the daemon, even with a read-only bind mount. Only run trusted images with that access. The connectivity check does not replace testing an actual update in an isolated environment. Full scan failures exit with status 1 instead of panicking or reporting success.
+
+The root `docker-compose.yml` is an optional monitoring demo, not a production deployment. It requires `WATCHTOWER_HTTP_API_TOKEN` from your environment or secret manager and binds the Watchtower API to localhost; it no longer supplies a shared demo token. Compose passes the same token to Watchtower and Prometheus. Prometheus keeps its image's default non-root user and writes a private runtime bearer-token file (directory mode `0700`, file mode `0600`), rather than storing the token in the scrape configuration. Treat container inspection and rendered `docker compose config` output as sensitive because the token is supplied through container environment variables. Recreate both services when rotating the token.
+
+After building `watchtower:local` and pulling the Compose Prometheus image (`docker pull prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06`), run `python3 scripts/test-compose-monitoring.py` to verify authentication and an actual Prometheus scrape with a generated non-demo token. The test uses unique container/network names, anonymous data volumes, loopback-only random ports, and a non-matching Watchtower scope with monitor-only/no-pull; it never launches the demo or targets existing services. It prints runtime handles and removes only its own resources, including on failure.
+
 ## Quick Start
 
 With watchtower you can update the running version of your containerized app simply by pushing a new image to the Docker Hub or your own image registry. 
@@ -34,7 +64,7 @@ Watchtower will pull down your new image, gracefully shut down your existing con
 $ docker run --detach \
     --name watchtower \
     --volume /var/run/docker.sock:/var/run/docker.sock \
-    containrrr/watchtower
+    watchtower:local
 ```
 
 Watchtower is intended to be used in homelabs, media centers, local dev environments, and similar. We do **not** recommend using Watchtower in a commercial or production environment. If that is you, you should be looking into using Kubernetes. If that feels like too big a step for you, please look into solutions like [MicroK8s](https://microk8s.io/) and [k3s](https://k3s.io/) that take away a lot of the toil of running a Kubernetes cluster. 

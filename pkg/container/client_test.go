@@ -1,7 +1,8 @@
 package container
 
 import (
-	"github.com/docker/docker/api/types/network"
+	"context"
+	"net/http"
 	"time"
 
 	"github.com/containrrr/watchtower/internal/util"
@@ -9,10 +10,10 @@ import (
 	"github.com/containrrr/watchtower/pkg/filters"
 	t "github.com/containrrr/watchtower/pkg/types"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/backend"
-	cli "github.com/docker/docker/client"
-	"github.com/docker/docker/errdefs"
+	"github.com/containerd/errdefs"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	cli "github.com/moby/moby/client"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/sirupsen/logrus"
@@ -20,9 +21,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gt "github.com/onsi/gomega/types"
-
-	"context"
-	"net/http"
 )
 
 var _ = Describe("the client", func() {
@@ -30,11 +28,15 @@ var _ = Describe("the client", func() {
 	var mockServer *ghttp.Server
 	BeforeEach(func() {
 		mockServer = ghttp.NewServer()
-		docker, _ = cli.NewClientWithOpts(
+		var err error
+		docker, err = cli.New(
 			cli.WithHost(mockServer.URL()),
+			cli.WithAPIVersion("1.40"),
 			cli.WithHTTPClient(mockServer.HTTPTestServer.Client()))
+		Expect(err).NotTo(HaveOccurred())
 	})
 	AfterEach(func() {
+		Expect(docker.Close()).To(Succeed())
 		mockServer.Close()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
@@ -78,8 +80,8 @@ var _ = Describe("the client", func() {
 	When("removing a running container", func() {
 		When("the container still exist after stopping", func() {
 			It("should attempt to remove the container", func() {
-				container := MockContainer(WithContainerState(types.ContainerState{Running: true}))
-				containerStopped := MockContainer(WithContainerState(types.ContainerState{Running: false}))
+				container := MockContainer(WithContainerState(dockercontainer.State{Running: true}))
+				containerStopped := MockContainer(WithContainerState(dockercontainer.State{Running: false}))
 
 				cid := container.ContainerInfo().ID
 				mockServer.AppendHandlers(
@@ -94,7 +96,7 @@ var _ = Describe("the client", func() {
 		})
 		When("the container does not exist after stopping", func() {
 			It("should not cause an error", func() {
-				container := MockContainer(WithContainerState(types.ContainerState{Running: true}))
+				container := MockContainer(WithContainerState(dockercontainer.State{Running: true}))
 
 				cid := container.ContainerInfo().ID
 				mockServer.AppendHandlers(
@@ -270,35 +272,33 @@ var _ = Describe("the client", func() {
 					// API.ContainerExecCreate
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", HaveSuffix("containers/%v/exec", containerID)),
-						ghttp.VerifyJSONRepresenting(types.ExecConfig{
-							User:   user,
-							Detach: false,
-							Tty:    true,
+						ghttp.VerifyJSONRepresenting(dockercontainer.ExecCreateRequest{
+							User: user,
+							Tty:  true,
 							Cmd: []string{
 								"sh",
 								"-c",
 								cmd,
 							},
 						}),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, types.IDResponse{ID: execID}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, dockercontainer.ExecCreateResponse{ID: execID}),
 					),
 					// API.ContainerExecStart
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", HaveSuffix("exec/%v/start", execID)),
-						ghttp.VerifyJSONRepresenting(types.ExecStartCheck{
-							Detach: false,
-							Tty:    true,
+						ghttp.VerifyJSONRepresenting(dockercontainer.ExecStartRequest{
+							Tty: true,
 						}),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 					// API.ContainerExecInspect
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", HaveSuffix("exec/ex-exec-id/json")),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, backend.ExecInspect{
+						ghttp.RespondWithJSONEncoded(http.StatusOK, dockercontainer.ExecInspectResponse{
 							ID:       execID,
 							Running:  false,
 							ExitCode: nil,
-							ProcessConfig: &backend.ExecProcessConfig{
+							ProcessConfig: &dockercontainer.ExecProcessConfig{
 								Entrypoint: "sh",
 								Arguments:  []string{"-c", cmd},
 								User:       user,
@@ -329,7 +329,7 @@ var _ = Describe("the client", func() {
 				endpoints := map[string]*network.EndpointSettings{
 					`test`: {Aliases: aliases},
 				}
-				container.containerInfo.NetworkSettings = &types.NetworkSettings{Networks: endpoints}
+				container.containerInfo.NetworkSettings = &dockercontainer.NetworkSettings{Networks: endpoints}
 				Expect(container.ContainerInfo().NetworkSettings.Networks[`test`].Aliases).To(Equal(aliases))
 				Expect(client.GetNetworkConfig(container).EndpointsConfig[`test`].Aliases).To(Equal([]string{"One", "Two", "Four"}))
 			})

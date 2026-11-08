@@ -11,14 +11,14 @@ import (
 	wt "github.com/containrrr/watchtower/pkg/types"
 	"github.com/sirupsen/logrus"
 
-	"github.com/docker/docker/api/types"
-	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
+	dockercontainer "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/api/types/network"
 )
 
 // NewContainer returns a new Container instance instantiated with the
 // specified ContainerInfo and ImageInfo structs.
-func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInspect) *Container {
+func NewContainer(containerInfo *dockercontainer.InspectResponse, imageInfo *image.InspectResponse) *Container {
 	return &Container{
 		containerInfo: containerInfo,
 		imageInfo:     imageInfo,
@@ -30,8 +30,10 @@ type Container struct {
 	LinkedToRestarting bool
 	Stale              bool
 
-	containerInfo *types.ContainerJSON
-	imageInfo     *types.ImageInspect
+	containerInfo *dockercontainer.InspectResponse
+	imageInfo     *image.InspectResponse
+	// Retained separately because the split SDK removed Config.MacAddress.
+	legacyMACAddress string
 }
 
 // IsLinkedToRestarting returns the current value of the LinkedToRestarting field for the container
@@ -55,7 +57,7 @@ func (c *Container) SetStale(value bool) {
 }
 
 // ContainerInfo fetches JSON info for the container
-func (c Container) ContainerInfo() *types.ContainerJSON {
+func (c Container) ContainerInfo() *dockercontainer.InspectResponse {
 	return c.containerInfo
 }
 
@@ -325,6 +327,10 @@ func (c Container) GetCreateConfig() *dockercontainer.Config {
 		if config.Healthcheck.StartPeriod == imageConfig.Healthcheck.StartPeriod {
 			config.Healthcheck.StartPeriod = 0
 		}
+
+		if config.Healthcheck.StartInterval == imageConfig.Healthcheck.StartInterval {
+			config.Healthcheck.StartInterval = 0
+		}
 	}
 
 	config.Env = util.SliceSubtract(config.Env, imageConfig.Env)
@@ -335,7 +341,7 @@ func (c Container) GetCreateConfig() *dockercontainer.Config {
 
 	// subtract ports exposed in image from container
 	for k := range config.ExposedPorts {
-		if _, ok := imageConfig.ExposedPorts[k]; ok {
+		if _, ok := imageConfig.ExposedPorts[k.String()]; ok {
 			delete(config.ExposedPorts, k)
 		}
 	}
@@ -368,13 +374,16 @@ func (c Container) HasImageInfo() bool {
 }
 
 // ImageInfo fetches the ImageInspect data of the current container
-func (c Container) ImageInfo() *types.ImageInspect {
+func (c Container) ImageInfo() *image.InspectResponse {
 	return c.imageInfo
 }
 
 // VerifyConfiguration checks the container and image configurations for nil references to make sure
 // that the container can be recreated once deleted
 func (c Container) VerifyConfiguration() error {
+	if err := c.verifyRecreationCompatibility(); err != nil {
+		return err
+	}
 	if c.imageInfo == nil {
 		return errorNoImageInfo
 	}
@@ -397,8 +406,17 @@ func (c Container) VerifyConfiguration() error {
 	// Instead of returning an error here, we just create an empty map
 	// This should allow for updating containers where the exposed ports are missing
 	if len(hostConfig.PortBindings) > 0 && containerConfig.ExposedPorts == nil {
-		containerConfig.ExposedPorts = make(map[nat.Port]struct{})
+		containerConfig.ExposedPorts = make(network.PortSet)
 	}
 
+	return nil
+}
+
+func (c Container) verifyRecreationCompatibility() error {
+	if c.legacyMACAddress != "" {
+		// Endpoint MACs are not equivalent on older engines, including versions
+		// which accept them at create but ignore them during network reconnect.
+		return fmt.Errorf("cannot safely recreate container %q: legacy Config.MacAddress %q is not supported by the selected Moby SDK; exclude this container from updates or manually migrate to per-network MAC configuration on an engine with network reconnect MAC support (see docs/docker-api-upgrade.md)", c.Name(), c.legacyMACAddress)
+	}
 	return nil
 }

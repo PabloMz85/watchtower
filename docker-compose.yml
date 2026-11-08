@@ -9,13 +9,20 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - 8080:8080
-    command: --interval 10 --http-api-metrics --http-api-token demotoken --debug prometheus grafana parent child
+      - 127.0.0.1:8080:8080
+    environment:
+      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN:?Set WATCHTOWER_HTTP_API_TOKEN through your environment or secret manager}
+    command: --interval 10 --http-api-metrics --debug prometheus grafana parent child
   prometheus:
     container_name: prometheus
-    image: prom/prometheus
+    image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    environment:
+      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_HTTP_API_TOKEN:?Set WATCHTOWER_HTTP_API_TOKEN through your environment or secret manager}
+    # Keep the image's default non-root user; write the credential privately.
+    entrypoint: ["/bin/sh", "/etc/prometheus/start.sh"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
     volumes:
-      - ./prometheus/:/etc/prometheus/
+      - ./prometheus/:/etc/prometheus/:ro
       - prometheus:/prometheus/
     ports:
       - 9090:9090

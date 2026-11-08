@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+**/*.key
+**/*.pem
+watchtower
+watchtower.exe
+dist
+coverage.out
+*.coverprofile
+.idea
+.DS_Store

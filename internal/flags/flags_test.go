@@ -14,9 +14,11 @@ import (
 )
 
 func TestEnvConfig_Defaults(t *testing.T) {
-	// Unset testing environments own variables, since those are not what is under test
-	_ = os.Unsetenv("DOCKER_TLS_VERIFY")
-	_ = os.Unsetenv("DOCKER_HOST")
+	t.Setenv("DOCKER_TLS_VERIFY", "")
+	t.Setenv("DOCKER_HOST", "")
+	t.Setenv("DOCKER_API_VERSION", "")
+	viper.Reset()
+	t.Cleanup(viper.Reset)
 
 	cmd := new(cobra.Command)
 	SetDefaults()
@@ -27,8 +29,7 @@ func TestEnvConfig_Defaults(t *testing.T) {
 
 	assert.Equal(t, "unix:///var/run/docker.sock", os.Getenv("DOCKER_HOST"))
 	assert.Equal(t, "", os.Getenv("DOCKER_TLS_VERIFY"))
-	// Re-enable this test when we've moved to github actions.
-	// assert.Equal(t, DockerAPIMinVersion, os.Getenv("DOCKER_API_VERSION"))
+	assert.Empty(t, os.Getenv("DOCKER_API_VERSION"), "the default must allow API version negotiation")
 }
 
 func TestEnvConfig_Custom(t *testing.T) {
@@ -36,7 +37,7 @@ func TestEnvConfig_Custom(t *testing.T) {
 	SetDefaults()
 	RegisterDockerFlags(cmd)
 
-	err := cmd.ParseFlags([]string{"--host", "some-custom-docker-host", "--tlsverify", "--api-version", "1.99"})
+	err := cmd.ParseFlags([]string{"--host", "some-custom-docker-host", "--tlsverify", "--api-version", "1.56"})
 	require.NoError(t, err)
 
 	err = EnvConfig(cmd)
@@ -44,8 +45,7 @@ func TestEnvConfig_Custom(t *testing.T) {
 
 	assert.Equal(t, "some-custom-docker-host", os.Getenv("DOCKER_HOST"))
 	assert.Equal(t, "1", os.Getenv("DOCKER_TLS_VERIFY"))
-	// Re-enable this test when we've moved to github actions.
-	// assert.Equal(t, "1.99", os.Getenv("DOCKER_API_VERSION"))
+	assert.Equal(t, "1.56", os.Getenv("DOCKER_API_VERSION"))
 }
 
 func TestGetSecretsFromFilesWithString(t *testing.T) {

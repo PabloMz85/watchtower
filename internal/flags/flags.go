@@ -9,24 +9,23 @@ import (
 	"strings"
 	"time"
 
+	sdkClient "github.com/moby/moby/client"
+	"github.com/moby/moby/client/pkg/versions"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-// DockerAPIMinVersion is the minimum version of the docker api required to
-// use watchtower
-const DockerAPIMinVersion string = "1.25"
-
 var defaultInterval = int((time.Hour * 24).Seconds())
+var dockerAPIVersionPattern = regexp.MustCompile(`^1\.(0|[1-9][0-9]*)$`)
 
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
 	flags.StringP("host", "H", envString("DOCKER_HOST"), "daemon socket to connect to")
 	flags.BoolP("tlsverify", "v", envBool("DOCKER_TLS_VERIFY"), "use TLS and verify the remote")
-	flags.StringP("api-version", "a", envString("DOCKER_API_VERSION"), "api version to use by docker client")
+	flags.StringP("api-version", "a", envString("DOCKER_API_VERSION"), "Docker API version override (empty negotiates automatically)")
 }
 
 // RegisterSystemFlags that are used by watchtower to modify the program flow
@@ -420,7 +419,8 @@ func envDuration(key string) time.Duration {
 func SetDefaults() {
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
-	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
+	// An empty API version lets the Docker SDK negotiate with the daemon.
+	viper.SetDefault("DOCKER_API_VERSION", "")
 	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", defaultInterval)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
@@ -451,13 +451,22 @@ func EnvConfig(cmd *cobra.Command) error {
 	if version, err = flags.GetString("api-version"); err != nil {
 		return err
 	}
+	if version != "" {
+		if !dockerAPIVersionPattern.MatchString(version) {
+			return fmt.Errorf("invalid API version %q: expected 1.<minor> without prefixes or leading zeroes", version)
+		}
+		if versions.LessThan(version, sdkClient.MinAPIVersion) || versions.GreaterThan(version, sdkClient.MaxAPIVersion) {
+			return fmt.Errorf("docker API version %s is outside the supported range %s–%s; unset DOCKER_API_VERSION or use --api-version= to negotiate", version, sdkClient.MinAPIVersion, sdkClient.MaxAPIVersion)
+		}
+	}
 	if err = setEnvOptStr("DOCKER_HOST", host); err != nil {
 		return err
 	}
 	if err = setEnvOptBool("DOCKER_TLS_VERIFY", tls); err != nil {
 		return err
 	}
-	if err = setEnvOptStr("DOCKER_API_VERSION", version); err != nil {
+	// Empty is meaningful here: an explicit empty flag restores negotiation.
+	if err = os.Setenv("DOCKER_API_VERSION", version); err != nil {
 		return err
 	}
 	return nil
