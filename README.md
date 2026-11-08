@@ -27,7 +27,7 @@
 
 ## Build this fork
 
-Requirements: Go 1.26.0 or newer (the container build uses Go 1.27.3), or Docker with BuildKit. The Docker daemon must support API 1.40 or newer. Containers retaining a legacy container-wide `Config.MacAddress` are deliberately excluded from automatic recreation rather than risk changing their MAC; see [configuration-preservation boundaries](docs/docker-api-upgrade.md#configuration-preservation-boundaries).
+Requirements: Go 1.27.3 or newer, or Docker with BuildKit. The Docker daemon must support API 1.40 or newer. Containers retaining a legacy container-wide `Config.MacAddress` are deliberately excluded from automatic recreation rather than risk changing their MAC; see [configuration-preservation boundaries](docs/docker-api-upgrade.md#configuration-preservation-boundaries).
 
 ```sh
 go test ./...
@@ -36,7 +36,25 @@ WATCHTOWER_INTEGRATION=1 bash scripts/verify.sh
 docker build -f dockerfiles/Dockerfile.self-contained -t watchtower:local .
 ```
 
-Both self-contained Dockerfiles build and test the **local checkout**, not the archived upstream repository. Base images are pinned by version and digest. No registry publishing is performed by these commands.
+Both self-contained Dockerfiles build and test the **local checkout**, not an upstream clone. No registry publishing is performed by these commands.
+
+### Multi-platform image from source
+
+Run from the repository root (`/Users/pablo/projects/watchtower`), with the repository root as the final build-context argument:
+
+```sh
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -f dockerfiles/Dockerfile.self-contained \
+  --build-arg WATCHTOWER_VERSION=0.0.1 \
+  -t pablomz85/watchtower:0.0.1 \
+  --load \
+  .
+```
+
+This builds a separate Linux executable for each target architecture and sets the application version to `0.0.1`. The command loads the image locally; it does not push to a registry. Loading both architectures requires a Docker image store with multi-platform support, as used by the verified Docker Desktop build.
+
+`dockerfiles/Dockerfile` is the **release-packaging** Dockerfile used by GoReleaser. It expects an already compiled, architecture-specific Linux executable named `watchtower` in its build context. It does not compile the source. Using `./dockerfiles/` as context fails because that directory contains no executable; using the root context with that packaging Dockerfile is also not the source-build path, because `.dockerignore` intentionally excludes local executables. Do not remove those exclusions or copy a macOS/single-architecture binary into a multi-platform image. Use a self-contained Dockerfile with the root context for source builds.
 
 Do not set `DOCKER_API_VERSION` or `--api-version` unless an exact version is required. Remove old pins such as `1.25` from Compose or environment files; an explicit `--api-version=` also restores negotiation. See [Docker API version](docs/arguments.md#docker-api-version).
 

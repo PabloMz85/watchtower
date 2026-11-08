@@ -3,8 +3,8 @@ package notifications
 import (
 	"net/url"
 
-	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	t "github.com/PabloMz85/watchtower/pkg/types"
+	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
