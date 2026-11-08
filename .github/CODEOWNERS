@@ -1,8 +1,2 @@
-pkg/notifications/smtp.go     @piksel
-pkg/notifications/email.go    @piksel
-pkg/notifications/shoutrrr.go @piksel @simskij @arnested
-pkg/container/*               @simskij
-pkg/api/*                     @victorcmoura
-.devbots/*                    @simskij
-.github/*                     @simskij
-docs/*                        @PabloMz85/watchtower-contributors
+# Default owner for every file in this repository.
+* @PabloMz85
