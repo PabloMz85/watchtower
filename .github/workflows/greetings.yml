@@ -1,23 +1,64 @@
 name: Greetings
 
 on:
-  # Runs in the context of the target (pablomz85/watchtower) repository, and as such has access to GITHUB_TOKEN
+  # Use the trusted base workflow; never check out or execute pull request code here.
   pull_request_target:
     types: [opened]
   issues:
     types: [opened]
 
+permissions: {}
+
 jobs:
   greeting:
+    # Dependabot does not need a welcome message or this job's write permissions.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
-    - uses: actions/first-interaction@v1
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: >
-          Hi there! 👋🏼
-          As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/PabloMz85/.github/blob/master/CODE_OF_CONDUCT.md)
-          as well as our [contribution guidelines](https://github.com/PabloMz85/watchtower/blob/master/CONTRIBUTING.md).
-          Thanks a bunch for opening your first issue! 🙏
-        pr-message: >
-          Congratulations on opening your first pull request! We'll get back to you as soon as possible. In the meantime, please make sure you've updated the documentation to reflect your changes and have added test automation as needed. Thanks! 🙏🏼
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          ISSUE_MESSAGE: >
+            Hi there! 👋🏼
+            As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/PabloMz85/.github/blob/master/CODE_OF_CONDUCT.md)
+            as well as our [contribution guidelines](https://github.com/PabloMz85/watchtower/blob/master/CONTRIBUTING.md).
+            Thanks a bunch for opening your first issue! 🙏
+          PR_MESSAGE: >
+            Congratulations on opening your first pull request! We'll get back to you as soon as possible. In the meantime, please make sure you've updated the documentation to reflect your changes and have added test automation as needed. Thanks! 🙏🏼
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const isPR = context.eventName === 'pull_request_target';
+            const current = isPR ? context.payload.pull_request : context.payload.issue;
+            const other = isPR ? context.payload.issue : context.payload.pull_request;
+            const validLogin = value => typeof value === 'string' && /^[a-z\d][a-z\d-]*(?:\[bot\])?$/i.test(value);
+            const validNumber = value => Number.isSafeInteger(value) && value > 0;
+            const { owner, repo } = context.repo;
+            if ((!isPR && context.eventName !== 'issues') || context.payload.action !== 'opened' ||
+                other !== undefined || !validNumber(current?.number) || !validLogin(current?.user?.login) ||
+                !validLogin(owner) || typeof repo !== 'string' || !/^[a-z\d_.-]+$/i.test(repo)) {
+              throw new Error('Invalid greeting event');
+            }
+            const author = current.user.login;
+            // The issues endpoint includes PRs and supports creator filtering for both types.
+            // Finish all pages before deciding; an API failure must never permit a greeting.
+            const history = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, creator: author, state: 'all', per_page: 100
+            });
+            const hasEarlier = history.some(item => {
+              if (!validNumber(item?.number) || !validLogin(item?.user?.login) ||
+                  (Object.hasOwn(item, 'pull_request') &&
+                   (!item.pull_request || typeof item.pull_request !== 'object'))) {
+                throw new Error('Invalid greeting history');
+              }
+              return item.number < current.number &&
+                item.user.login.toLowerCase() === author.toLowerCase() &&
+                Object.hasOwn(item, 'pull_request') === isPR;
+            });
+            if (hasEarlier) return;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: current.number,
+              body: isPR ? process.env.PR_MESSAGE : process.env.ISSUE_MESSAGE
+            });
