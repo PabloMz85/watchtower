@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/pkg/types"
 	dc "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	. "github.com/onsi/ginkgo"
@@ -165,7 +165,7 @@ var _ = Describe("the container", func() {
 		})
 		It("should return its name on calls to .Name()", func() {
 			name := c.Name()
-			Expect(name).To(Equal("test-containrrr"))
+			Expect(name).To(Equal("test-pablomz85"))
 			Expect(name).NotTo(Equal("wrong-name"))
 		})
 		It("should return its ID on calls to .ID()", func() {
@@ -294,8 +294,8 @@ var _ = Describe("the container", func() {
 			When("the depends on label is not present", func() {
 				It("should fetch depending containers from host config links", func() {
 					c = MockContainer(WithLinks([]string{
-						"redis:test-containrrr",
-						"postgres:test-containrrr",
+						"redis:test-pablomz85",
+						"postgres:test-pablomz85",
 					}))
 					links := c.Links()
 					Expect(links).To(SatisfyAll(ContainElement("redis"), ContainElement("postgres"), HaveLen(2)))

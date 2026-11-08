@@ -11,17 +11,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/internal/flags"
-	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/api"
-	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/api/update"
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/filters"
-	"github.com/containrrr/watchtower/pkg/metrics"
-	"github.com/containrrr/watchtower/pkg/notifications"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/internal/actions"
+	"github.com/PabloMz85/watchtower/internal/flags"
+	"github.com/PabloMz85/watchtower/internal/meta"
+	"github.com/PabloMz85/watchtower/pkg/api"
+	apiMetrics "github.com/PabloMz85/watchtower/pkg/api/metrics"
+	"github.com/PabloMz85/watchtower/pkg/api/update"
+	"github.com/PabloMz85/watchtower/pkg/container"
+	"github.com/PabloMz85/watchtower/pkg/filters"
+	"github.com/PabloMz85/watchtower/pkg/metrics"
+	"github.com/PabloMz85/watchtower/pkg/notifications"
+	t "github.com/PabloMz85/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 
@@ -54,7 +54,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Automatically updates running Docker containers",
 		Long: `
 	Watchtower automatically updates running Docker containers whenever a new image is released.
-	More information available at https://github.com/containrrr/watchtower/.
+	More information available at https://github.com/PabloMz85/watchtower/.
 	`,
 		Run:    Run,
 		PreRun: PreRun,

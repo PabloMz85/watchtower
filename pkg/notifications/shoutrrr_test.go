@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/containrrr/shoutrrr/pkg/types"
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/internal/flags"
-	s "github.com/containrrr/watchtower/pkg/session"
+	"github.com/PabloMz85/watchtower/internal/actions/mocks"
+	"github.com/PabloMz85/watchtower/internal/flags"
+	s "github.com/PabloMz85/watchtower/pkg/session"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -280,9 +280,9 @@ Turns out everything is on fire
 				shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{}, false, time.Duration(0))
 				shoutrrr.AddLogHook()
 				shoutrrr.StartNotification()
-				logrus.Info("This log message is sponsored by ContainrrrVPN")
+				logrus.Info("This log message is sponsored by PabloMz85VPN")
 				shoutrrr.SendNotification(nil)
-				Eventually(logBuffer).Should(gbytes.Say(`Shoutrrr: This log message is sponsored by ContainrrrVPN`))
+				Eventually(logBuffer).Should(gbytes.Say(`Shoutrrr: This log message is sponsored by PabloMz85VPN`))
 			})
 		})
 	})

@@ -3,8 +3,8 @@ package registry
 import (
 	"context"
 
-	"github.com/containrrr/watchtower/pkg/registry/helpers"
-	watchtowerTypes "github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/pkg/registry/helpers"
+	watchtowerTypes "github.com/PabloMz85/watchtower/pkg/types"
 	ref "github.com/distribution/reference"
 	"github.com/moby/moby/client"
 	log "github.com/sirupsen/logrus"

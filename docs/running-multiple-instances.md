@@ -10,15 +10,13 @@ To define an instance monitoring scope, use the `--scope` argument or the `WATCH
 For example, in a Docker Compose config file:
 
 ```yaml
-version: '3'
-
 services:
   app-with-scope:
     image: myapps/monitored-by-watchtower
     labels: [ "com.centurylinklabs.watchtower.scope=myscope" ]
 
   scoped-watchtower:
-    image: containrrr/watchtower
+    image: pablomz85/watchtower
     volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
     command: --interval 30 --scope myscope
     labels: [ "com.centurylinklabs.watchtower.scope=myscope" ] 
@@ -35,7 +33,7 @@ services:
     labels: [ "com.centurylinklabs.watchtower.scope=" ]
     
   unscoped-watchtower:
-    image: containrrr/watchtower
+    image: pablomz85/watchtower
     volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
     command: --interval 30 --scope none
 ```

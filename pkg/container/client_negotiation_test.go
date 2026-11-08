@@ -10,7 +10,7 @@ import (
 
 	sdkClient "github.com/moby/moby/client"
 
-	"github.com/containrrr/watchtower/pkg/filters"
+	"github.com/PabloMz85/watchtower/pkg/filters"
 )
 
 func TestNewClientNegotiatesDaemonAPI(t *testing.T) {

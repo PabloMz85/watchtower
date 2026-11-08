@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containrrr/watchtower/pkg/container"
-	wt "github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/pkg/container"
+	wt "github.com/PabloMz85/watchtower/pkg/types"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerimage "github.com/moby/moby/api/types/image"
 	"github.com/moby/moby/api/types/network"

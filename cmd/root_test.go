@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/filters"
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/pkg/container"
+	"github.com/PabloMz85/watchtower/pkg/filters"
+	"github.com/PabloMz85/watchtower/pkg/types"
 	"github.com/stretchr/testify/require"
 )
 

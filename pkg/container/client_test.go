@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/util"
-	"github.com/containrrr/watchtower/pkg/container/mocks"
-	"github.com/containrrr/watchtower/pkg/filters"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/internal/util"
+	"github.com/PabloMz85/watchtower/pkg/container/mocks"
+	"github.com/PabloMz85/watchtower/pkg/filters"
+	t "github.com/PabloMz85/watchtower/pkg/types"
 
 	"github.com/containerd/errdefs"
 	dockercontainer "github.com/moby/moby/api/types/container"
@@ -178,7 +178,7 @@ var _ = Describe("the client", func() {
 				}
 				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(containers).To(ConsistOf(withContainerImageName(Equal("containrrr/watchtower:latest"))))
+				Expect(containers).To(ConsistOf(withContainerImageName(Equal("pablomz85/watchtower:latest"))))
 			})
 		})
 		When(`include stopped is enabled`, func() {

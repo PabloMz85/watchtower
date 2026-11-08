@@ -14,7 +14,7 @@ func MockContainer(updates ...MockContainerUpdate) *Container {
 
 		ID:         "container_id",
 		Image:      "image",
-		Name:       "test-containrrr",
+		Name:       "test-pablomz85",
 		HostConfig: &dockerContainer.HostConfig{},
 
 		Config: &dockerContainer.Config{

@@ -5,9 +5,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/notifications/preview"
-	"github.com/containrrr/watchtower/pkg/notifications/preview/data"
+	"github.com/PabloMz85/watchtower/internal/meta"
+	"github.com/PabloMz85/watchtower/pkg/notifications/preview"
+	"github.com/PabloMz85/watchtower/pkg/notifications/preview/data"
 
 	"syscall/js"
 )

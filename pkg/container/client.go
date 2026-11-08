@@ -15,9 +15,9 @@ import (
 	sdkClient "github.com/moby/moby/client"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/containrrr/watchtower/pkg/registry"
-	"github.com/containrrr/watchtower/pkg/registry/digest"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/PabloMz85/watchtower/pkg/registry"
+	"github.com/PabloMz85/watchtower/pkg/registry/digest"
+	t "github.com/PabloMz85/watchtower/pkg/types"
 )
 
 const defaultStopSignal = "SIGTERM"

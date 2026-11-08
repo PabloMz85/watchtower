@@ -63,7 +63,7 @@ When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
 
 ```bash
-docker run [...] -v <PATH>/config.json:/config.json containrrr/watchtower
+docker run [...] -v <PATH>/config.json:/config.json pablomz85/watchtower
 ```
 
 ### Share the Docker configuration file
@@ -76,16 +76,15 @@ additional configuration file is not necessary.
 When the Docker container is started, pass the configuration file to watchtower:
 
 ```bash
-docker run [...] -v <PATH_TO_HOME_DIR>/.docker/config.json:/config.json containrrr/watchtower
+docker run [...] -v <PATH_TO_HOME_DIR>/.docker/config.json:/config.json pablomz85/watchtower
 ```
 
 When creating the watchtower container via docker-compose, use the following lines:
 
 ```yaml
-version: "3.4"
 services:
   watchtower:
-    image: containrrr/watchtower:latest
+    image: pablomz85/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - <PATH_TO_HOME_DIR>/.docker/config.json:/config.json
@@ -97,11 +96,9 @@ By default, watchtower will look for the `config.json` file in `/`, but this can
 Example usage:
 
 ```yaml
-version: "3.4"
-
 services: 
   watchtower:
-    image: containrrr/watchtower
+    image: pablomz85/watchtower
     environment:
         DOCKER_CONFIG: /config
     volumes:
@@ -124,7 +121,7 @@ in a volume that may be mounted onto your watchtower container.
 
 1.  Create the Dockerfile (contents below):
     ```Dockerfile
-    FROM golang:1.20
+    FROM golang:1.27.3
     
     ENV GO111MODULE off
     ENV CGO_ENABLED 0
@@ -173,12 +170,11 @@ in a volume that may be mounted onto your watchtower container.
 
 4.  Create a docker-compose file (as an example) to help launch the container:
     ```yaml
-    version: "3.4"
     services:
      # Check for new images and restart things if a new image exists
      # for any of our containers.
      watchtower:
-       image: containrrr/watchtower:latest
+       image: pablomz85/watchtower:latest
        volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - .docker/config.json:/config.json

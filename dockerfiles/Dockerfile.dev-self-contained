@@ -1,5 +1,5 @@
 # Build and test the checked-out source, never an upstream clone.
-FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine3.24@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS builder
+FROM --platform=$BUILDPLATFORM golang:alpine3.24 AS builder
 
 WORKDIR /src
 RUN apk add --no-cache ca-certificates tzdata
@@ -13,7 +13,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 ARG WATCHTOWER_VERSION=local
 RUN CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" GOARM="${TARGETVARIANT#v}" \
-    go build -trimpath -ldflags "-s -w -X github.com/containrrr/watchtower/internal/meta.Version=$WATCHTOWER_VERSION" -o /out/watchtower .
+    go build -trimpath -ldflags "-s -w -X github.com/PabloMz85/watchtower/internal/meta.Version=$WATCHTOWER_VERSION" -o /out/watchtower .
 
 FROM scratch
 LABEL "com.centurylinklabs.watchtower"="true"

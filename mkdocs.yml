@@ -1,17 +1,17 @@
 site_name: Watchtower
-site_url: https://containrrr.dev/watchtower/
-repo_url: https://github.com/containrrr/watchtower/
+site_url: https://github.com/PabloMz85/watchtower/
+repo_url: https://github.com/PabloMz85/watchtower/
 edit_uri: edit/main/docs/
 theme:
   name: 'material'
   palette:
     - media: "(prefers-color-scheme: light)"
-      scheme: containrrr
+      scheme: PabloMz85
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
-      scheme: containrrr-dark
+      scheme: PabloMz85-dark
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -29,7 +29,7 @@ markdown_extensions:
     - pymdownx.magiclink:
         repo_url_shortener: True
         provider: github
-        user: containrrr
+        user: PabloMz85
         repo: watchtower
     - pymdownx.saneheaders
     - pymdownx.tabbed:

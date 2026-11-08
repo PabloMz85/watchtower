@@ -7,8 +7,6 @@ Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be r
 To enable this mode, use the flag `--http-api-update`. For example, in a Docker Compose config file:
 
 ```yaml
-version: '3'
-
 services:
   app-monitored-by-watchtower:
     image: myapps/monitored-by-watchtower
@@ -16,7 +14,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower
+    image: pablomz85/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --debug --http-api-update

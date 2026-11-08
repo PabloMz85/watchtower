@@ -1,6 +1,6 @@
-module github.com/containrrr/watchtower
+module github.com/PabloMz85/watchtower
 
-go 1.26.0
+go 1.27.3
 
 require (
 	github.com/containerd/errdefs v1.0.0
