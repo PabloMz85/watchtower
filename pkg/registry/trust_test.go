@@ -11,7 +11,7 @@ var _ = Describe("Registry credential helpers", func() {
 	Describe("EncodedAuth", func() {
 		It("should return repo credentials from env when set", func() {
 			var err error
-			expected := "eyJ1c2VybmFtZSI6ImNvbnRhaW5ycnItdXNlciIsInBhc3N3b3JkIjoiY29udGFpbnJyci1wYXNzIn0="
+			expected := "eyJ1c2VybmFtZSI6InBhYmxvbXo4NS11c2VyIiwicGFzc3dvcmQiOiJwYWJsb216ODUtcGFzcyJ9"
 
 			err = os.Setenv("REPO_USER", "pablomz85-user")
 			Expect(err).NotTo(HaveOccurred())
