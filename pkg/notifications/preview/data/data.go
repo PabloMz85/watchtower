@@ -129,7 +129,7 @@ func (pb *previewData) randomEntry(arr []string) string {
 
 func (pb *previewData) generateName() string {
 	index := pb.containerCount
-	if index <= len(containerNames) {
+	if index < len(containerNames) {
 		return "/" + containerNames[index]
 	}
 	suffix := index / len(containerNames)
