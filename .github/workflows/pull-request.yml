@@ -50,7 +50,7 @@ jobs:
       - name: Verify real Docker update
         if: runner.os == 'Linux'
         run: WATCHTOWER_INTEGRATION=1 go test ./integration -v -count=1
-      - name: Publish coverage
+      - name: Publish coverage on Codecov
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
