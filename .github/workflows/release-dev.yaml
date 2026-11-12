@@ -1,4 +1,4 @@
-name: Push to main
+name: CI and manual development image publication
 
 on:
   workflow_dispatch: {}
@@ -34,6 +34,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   publish:
+    if: github.event_name == 'workflow_dispatch'
     needs:
       - build
       - test
