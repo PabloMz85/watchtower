@@ -1,5 +1,9 @@
 # Race CI cache (adapted from upstream #2131)
 
+This branch includes the reviewed Clock prerequisite to share the approved Go
+security pins without leaving an integration conflict at the setup-go step.
+Merge `feat/2129-clock` first; the CI feature itself does not use Clock.
+
 Only the existing `test` job in `.github/workflows/pull-request.yml` gets an
 explicit cache. `setup-go@v7` already caches both `GOMODCACHE` and `GOCACHE`, but
 its key does not distinguish jobs or race builds. The first successful writer
