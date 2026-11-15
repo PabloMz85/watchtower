@@ -37,9 +37,7 @@ func EncodedEnvAuth() (string, error) {
 			Password: password,
 		}
 
-		log.Debugf("Loaded auth credentials for registry user %s from environment", auth.Username)
-		// CREDENTIAL: Uncomment to log REPO_PASS environment variable
-		// log.Tracef("Using auth password %s", auth.Password)
+		log.Debug("Loaded registry credentials from environment")
 
 		return EncodeAuth(auth)
 	}
@@ -73,9 +71,7 @@ func EncodedConfigAuth(imageRef string) (string, error) {
 		log.WithField("config_file", configFile.Filename).Debugf("No credentials for %s found", server)
 		return "", nil
 	}
-	log.Debugf("Loaded auth credentials for user %s, on registry %s, from file %s", auth.Username, server, configFile.Filename)
-	// CREDENTIAL: Uncomment to log docker config password
-	// log.Tracef("Using auth password %s", auth.Password)
+	log.Debug("Loaded registry credentials from Docker config")
 	return EncodeAuth(auth)
 }
 

@@ -1,21 +1,25 @@
 package digest_test
 
 import (
+	"context"
 	"fmt"
 	"github.com/PabloMz85/watchtower/internal/actions/mocks"
+	"github.com/PabloMz85/watchtower/internal/registrytest"
+	"github.com/PabloMz85/watchtower/pkg/registry/auth"
 	"github.com/PabloMz85/watchtower/pkg/registry/digest"
 	wtTypes "github.com/PabloMz85/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 )
 
-func TestDigest(t *testing.T) {
+var suiteT *testing.T
 
+func TestDigest(t *testing.T) {
+	suiteT = t
 	RegisterFailHandler(Fail)
 	RunSpecs(GinkgoT(), "Digest Suite")
 }
@@ -96,28 +100,17 @@ var _ = Describe("Digests", func() {
 		)
 	})
 	When("sending a HEAD request", func() {
-		var server *ghttp.Server
-		BeforeEach(func() {
-			server = ghttp.NewServer()
-		})
-		AfterEach(func() {
-			server.Close()
-		})
-		It("should use a custom user-agent", func() {
-			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyHeader(http.Header{
-						"User-Agent": []string{"Watchtower/v0.0.0-unknown"},
-					}),
-					ghttp.RespondWith(http.StatusOK, "", http.Header{
-						digest.ContentDigestHeader: []string{
-							mockDigest,
-						},
-					}),
-				),
-			)
-			dig, err := digest.GetDigest(server.URL(), "token")
-			Expect(server.ReceivedRequests()).Should(HaveLen(1))
+		It("should use a custom user-agent over trusted TLS", func() {
+			server, ca := registrytest.New(suiteT, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.Header.Get("User-Agent")).To(Equal("Watchtower/v0.0.0-unknown"))
+				w.Header().Set(digest.ContentDigestHeader, mockDigest)
+			}))
+			provider, err := auth.NewClient(auth.ClientOptions{CAFile: ca})
+			Expect(err).NotTo(HaveOccurred())
+			defer provider.Close()
+			client, err := digest.NewClient(provider)
+			Expect(err).NotTo(HaveOccurred())
+			dig, err := client.GetDigest(context.Background(), server.URL, registrytest.Random(suiteT))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dig).To(Equal(mockDigest))
 		})

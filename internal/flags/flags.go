@@ -23,6 +23,7 @@ var dockerAPIVersionPattern = regexp.MustCompile(`^1\.(0|[1-9][0-9]*)$`)
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
+	flags.String("registry-ca", envString("WATCHTOWER_REGISTRY_CA"), "Additional PEM CA bundle for registry challenge, token and HEAD HTTPS requests (not Docker daemon trust)")
 	flags.StringP("host", "H", envString("DOCKER_HOST"), "daemon socket to connect to")
 	flags.BoolP("tlsverify", "v", envBool("DOCKER_TLS_VERIFY"), "use TLS and verify the remote")
 	flags.StringP("api-version", "a", envString("DOCKER_API_VERSION"), "Docker API version override (empty negotiates automatically)")
