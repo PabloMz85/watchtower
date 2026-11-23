@@ -27,7 +27,7 @@
 
 ## Build this fork
 
-Requirements: Go 1.27.3 or newer, or Docker with BuildKit. The Docker daemon must support API 1.40 or newer. Containers retaining a legacy container-wide `Config.MacAddress` are deliberately excluded from automatic recreation rather than risk changing their MAC; see [configuration-preservation boundaries](docs/docker-api-upgrade.md#configuration-preservation-boundaries).
+Requirements: Go 1.27.4 or newer, or Docker with BuildKit. The Docker daemon must support API 1.40 or newer. Containers retaining a legacy container-wide `Config.MacAddress` are deliberately excluded from automatic recreation rather than risk changing their MAC; see [configuration-preservation boundaries](docs/docker-api-upgrade.md#configuration-preservation-boundaries).
 
 ```sh
 go test ./...
