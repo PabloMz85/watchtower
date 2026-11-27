@@ -51,7 +51,7 @@ Recreate-wire regression tests additionally cover image-default subtraction, pub
 docker build -f dockerfiles/Dockerfile.self-contained -t watchtower:local .
 ```
 
-Both self-contained Dockerfiles build the checked-out source, not an upstream clone. Build bases are pinned by tag and digest. `.dockerignore` excludes common environment and private-key files from the build context.
+Both self-contained Dockerfiles build the checked-out source, not an upstream clone. The Go builder is pinned by version tag and verified multi-platform index digest: `golang:1.27.4-alpine3.24@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf`. `.dockerignore` excludes common environment and private-key files from the build context.
 
 Use the resulting image in the deployment you control and remove old `DOCKER_API_VERSION` or `--api-version` pins. The optional root Compose demo requires `WATCHTOWER_HTTP_API_TOKEN` from an environment or secret manager and exposes Watchtower's API only on localhost.
 
