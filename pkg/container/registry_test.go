@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -14,8 +15,14 @@ import (
 )
 
 func TestNewClientDefaultRegistryAndInjectedPullCache(t *testing.T) {
+	var dockerRequests atomic.Int64
+	dockerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		dockerRequests.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(dockerServer.Close)
 	t.Setenv("DOCKER_API_VERSION", "")
-	t.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
+	t.Setenv("DOCKER_HOST", dockerServer.URL)
 	t.Setenv("DOCKER_TLS_VERIFY", "")
 	t.Setenv("DOCKER_CERT_PATH", "")
 	t.Setenv("DOCKER_CONFIG", t.TempDir())
@@ -66,5 +73,8 @@ func TestNewClientDefaultRegistryAndInjectedPullCache(t *testing.T) {
 	}
 	if tokens.Load() != 1 || heads.Load() != 2 {
 		t.Fatalf("pull flow did not reuse instance token: tokens=%d heads=%d", tokens.Load(), heads.Load())
+	}
+	if dockerRequests.Load() != 0 {
+		t.Fatalf("unchanged manifest unexpectedly contacted Docker: requests=%d", dockerRequests.Load())
 	}
 }
