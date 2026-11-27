@@ -1,0 +1,27 @@
+{
+  "name": "Watchtower CodeQL analysis",
+  "enforcement": "active",
+  "conditions": {
+    "workflow_path": {
+      "include": [".github/workflows/codeql-analysis.yml"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "restrict_actions_actors",
+      "parameters": {
+        "allowed_actors": [
+          {"id": 19808080, "type": "User"},
+          {"id": 49699333, "type": "Bot"}
+        ]
+      }
+    },
+    {
+      "type": "restrict_action_events",
+      "parameters": {
+        "allowed_events": ["pull_request", "push", "schedule", "workflow_dispatch"]
+      }
+    }
+  ]
+}
