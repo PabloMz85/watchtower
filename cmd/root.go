@@ -21,6 +21,8 @@ import (
 	"github.com/PabloMz85/watchtower/pkg/filters"
 	"github.com/PabloMz85/watchtower/pkg/metrics"
 	"github.com/PabloMz85/watchtower/pkg/notifications"
+	"github.com/PabloMz85/watchtower/pkg/registry/auth"
+	"github.com/PabloMz85/watchtower/pkg/registry/digest"
 	t "github.com/PabloMz85/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
@@ -122,7 +124,18 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
+	registryCA, _ := f.GetString("registry-ca")
+	provider, err := auth.NewClient(auth.ClientOptions{CAFile: registryCA})
+	if err != nil {
+		log.Fatalf("Failed to initialize registry CA/auth client: %s", err)
+	}
+	registryClient, err := digest.NewClient(provider)
+	if err != nil {
+		log.Fatal("Failed to initialize registry digest client")
+	}
+
 	client = container.NewClient(container.ClientOptions{
+		Registry:          registryClient,
 		IncludeStopped:    includeStopped,
 		ReviveStopped:     reviveStopped,
 		RemoveVolumes:     removeVolumes,

@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/PabloMz85/watchtower/pkg/registry"
+	"github.com/PabloMz85/watchtower/pkg/registry/auth"
 	"github.com/PabloMz85/watchtower/pkg/registry/digest"
 	t "github.com/PabloMz85/watchtower/pkg/types"
 )
@@ -43,6 +44,16 @@ type Client interface {
 //   - DOCKER_TLS_VERIFY		whether to verify tls certificates
 //   - DOCKER_API_VERSION	the fixed Docker API version (disables negotiation)
 func NewClient(opts ClientOptions) Client {
+	if opts.Registry == nil {
+		provider, err := auth.NewClient(auth.ClientOptions{})
+		if err != nil {
+			log.Fatal("Error initializing secure registry client")
+		}
+		opts.Registry, err = digest.NewClient(provider)
+		if err != nil {
+			log.Fatal("Error initializing registry digest client")
+		}
+	}
 	cli, err := sdkClient.New(sdkClient.FromEnv)
 
 	if err != nil {
@@ -57,6 +68,8 @@ func NewClient(opts ClientOptions) Client {
 
 // ClientOptions contains the options for how the docker client wrapper should behave
 type ClientOptions struct {
+	// Registry is instance scoped; nil selects a secure RAM-cached default.
+	Registry          *digest.Client
 	RemoveVolumes     bool
 	IncludeStopped    bool
 	ReviveStopped     bool
@@ -412,7 +425,7 @@ func (client dockerClient) PullImage(ctx context.Context, container t.Container)
 
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
-	if match, err := digest.CompareDigest(container, opts.RegistryAuth); err != nil {
+	if match, err := client.Registry.CompareDigest(ctx, container, opts.RegistryAuth); err != nil {
 		headLevel := log.DebugLevel
 		if client.WarnOnHeadPullFailed(container) {
 			headLevel = log.WarnLevel

@@ -1,162 +1,87 @@
 package auth
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/PabloMz85/watchtower/pkg/registry/helpers"
 	"github.com/PabloMz85/watchtower/pkg/types"
 	ref "github.com/distribution/reference"
-	"github.com/sirupsen/logrus"
 )
 
-// ChallengeHeader is the HTTP Header containing challenge instructions
+// ChallengeHeader is the HTTP header containing challenge instructions.
 const ChallengeHeader = "WWW-Authenticate"
 
-// GetToken fetches a token for the registry hosting the provided image
+// GetToken is a compatibility wrapper using a fresh secure client. Long-lived
+// callers should inject a Client to reuse tokens and connections across requests.
 func GetToken(container types.Container, registryAuth string) (string, error) {
-	normalizedRef, err := ref.ParseNormalizedNamed(container.ImageName())
+	client, err := NewClient(ClientOptions{})
 	if err != nil {
 		return "", err
 	}
-
-	URL := GetChallengeURL(normalizedRef)
-	logrus.WithField("URL", URL.String()).Debug("Built challenge URL")
-
-	var req *http.Request
-	if req, err = GetChallengeRequest(URL); err != nil {
-		return "", err
-	}
-
-	client := &http.Client{}
-	var res *http.Response
-	if res, err = client.Do(req); err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	v := res.Header.Get(ChallengeHeader)
-
-	logrus.WithFields(logrus.Fields{
-		"status": res.Status,
-		"header": v,
-	}).Debug("Got response to challenge request")
-
-	challenge := strings.ToLower(v)
-	if strings.HasPrefix(challenge, "basic") {
-		if registryAuth == "" {
-			return "", fmt.Errorf("no credentials available")
-		}
-
-		return fmt.Sprintf("Basic %s", registryAuth), nil
-	}
-	if strings.HasPrefix(challenge, "bearer") {
-		return GetBearerHeader(challenge, normalizedRef, registryAuth)
-	}
-
-	return "", errors.New("unsupported challenge type from registry")
+	defer client.Close()
+	return client.GetToken(context.Background(), container, registryAuth)
 }
 
-// GetChallengeRequest creates a request for getting challenge instructions
-func GetChallengeRequest(URL url.URL) (*http.Request, error) {
-	req, err := http.NewRequest("GET", URL.String(), nil)
-	if err != nil {
+// GetChallengeRequest validates an HTTPS endpoint before constructing a request.
+func GetChallengeRequest(endpoint url.URL) (*http.Request, error) {
+	if _, err := secureURL(endpoint.String()); err != nil {
 		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return nil, errors.New("invalid registry challenge request")
 	}
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("User-Agent", "Watchtower (Docker)")
 	return req, nil
 }
 
-// GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) (string, error) {
-	client := http.Client{}
-	authURL, err := GetAuthURL(challenge, imageRef)
-
+// GetBearerHeader preserves the historical API with secure defaults.
+func GetBearerHeader(challenge string, image ref.Named, registryAuth string) (string, error) {
+	client, err := NewClient(ClientOptions{})
 	if err != nil {
 		return "", err
 	}
-
-	var r *http.Request
-	if r, err = http.NewRequest("GET", authURL.String(), nil); err != nil {
-		return "", err
-	}
-
-	if registryAuth != "" {
-		logrus.Debug("Credentials found.")
-		// CREDENTIAL: Uncomment to log registry credentials
-		// logrus.Tracef("Credentials: %v", registryAuth)
-		r.Header.Add("Authorization", fmt.Sprintf("Basic %s", registryAuth))
-	} else {
-		logrus.Debug("No credentials found.")
-	}
-
-	var authResponse *http.Response
-	if authResponse, err = client.Do(r); err != nil {
-		return "", err
-	}
-
-	body, _ := io.ReadAll(authResponse.Body)
-	tokenResponse := &types.TokenResponse{}
-
-	err = json.Unmarshal(body, tokenResponse)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("Bearer %s", tokenResponse.Token), nil
+	defer client.Close()
+	return client.GetBearerHeader(context.Background(), challenge, image, registryAuth)
 }
 
-// GetAuthURL from the instructions in the challenge
-func GetAuthURL(challenge string, imageRef ref.Named) (*url.URL, error) {
-	loweredChallenge := strings.ToLower(challenge)
-	raw := strings.TrimPrefix(loweredChallenge, "bearer")
-
-	pairs := strings.Split(raw, ",")
-	values := make(map[string]string, len(pairs))
-
-	for _, pair := range pairs {
-		trimmed := strings.Trim(pair, " ")
-		if key, val, ok := strings.Cut(trimmed, "="); ok {
-			values[key] = strings.Trim(val, `"`)
-		}
+// GetAuthURL preserves case-sensitive challenge values and derives the requested
+// repository pull scope itself rather than trusting a server-supplied scope.
+func GetAuthURL(challenge string, image ref.Named) (*url.URL, error) {
+	if isNil(image) {
+		return nil, errors.New("image reference is required")
 	}
-	logrus.WithFields(logrus.Fields{
-		"realm":   values["realm"],
-		"service": values["service"],
-	}).Debug("Checking challenge header content")
+	values, err := parseChallenge(challenge)
+	if err != nil {
+		return nil, err
+	}
 	if values["realm"] == "" || values["service"] == "" {
-
-		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
+		return nil, errors.New("registry challenge is missing realm or service")
 	}
-
-	authURL, _ := url.Parse(values["realm"])
-	q := authURL.Query()
-	q.Add("service", values["service"])
-
-	scopeImage := ref.Path(imageRef)
-
-	scope := fmt.Sprintf("repository:%s:pull", scopeImage)
-	logrus.WithFields(logrus.Fields{"scope": scope, "image": imageRef.Name()}).Debug("Setting scope for auth token")
-	q.Add("scope", scope)
-
-	authURL.RawQuery = q.Encode()
-	return authURL, nil
+	endpoint, err := secureURL(values["realm"])
+	if err != nil {
+		return nil, err
+	}
+	q := endpoint.Query()
+	q.Set("service", values["service"])
+	q.Set("scope", fmt.Sprintf("repository:%s:pull", ref.Path(image)))
+	endpoint.RawQuery = q.Encode()
+	return endpoint, nil
 }
 
-// GetChallengeURL returns the URL to check auth requirements
-// for access to a given image
-func GetChallengeURL(imageRef ref.Named) url.URL {
-	host, _ := helpers.GetRegistryAddress(imageRef.Name())
-
-	URL := url.URL{
-		Scheme: "https",
-		Host:   host,
-		Path:   "/v2/",
+// GetChallengeURL returns the HTTPS challenge endpoint for an image registry.
+func GetChallengeURL(image ref.Named) url.URL {
+	if isNil(image) {
+		return url.URL{}
 	}
-	return URL
+	host, err := helpers.GetRegistryAddress(image.Name())
+	if err != nil {
+		return url.URL{}
+	}
+	return url.URL{Scheme: "https", Host: host, Path: "/v2/"}
 }

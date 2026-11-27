@@ -425,6 +425,17 @@ Environment Variable: DOCKER_TLS_VERIFY
              Default: false
 ```
 
+## Registry CA bundle
+
+Additional PEM CA certificates for Watchtower's registry challenge, token and manifest HEAD HTTPS requests. Mount the file read-only inside the container and set its container path. System trust roots remain enabled. An empty, unreadable or partly invalid bundle aborts startup. This does not configure trust for Docker daemon pulls or the Docker API connection; those are separate trust domains. No registry TLS verification bypass is available. See [secure connections](secure-connections.md#registry-https-and-token-cache).
+
+```text
+            Argument: --registry-ca
+Environment Variable: WATCHTOWER_REGISTRY_CA
+                Type: String (path to PEM CA bundle)
+             Default: "" (system trust roots only)
+```
+
 ## HEAD failure warnings
 
 When to warn about HEAD pull requests failing. Auto means that it will warn when the registry is known to handle the
