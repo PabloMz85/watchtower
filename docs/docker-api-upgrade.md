@@ -11,7 +11,7 @@ Selected versions:
 - Moby client: `v0.6.2`.
 - Moby API: `v1.56.1`.
 - Docker CLI configuration library: `v29.9.3+incompatible`.
-- Go language/toolchain minimum: `1.26.0`; container builder and CI: `1.27.3`.
+- Go language/toolchain minimum, container builder and CI: `1.27.4`.
 - Client API range: `1.40`–`1.56`. Newer daemons negotiate down to the client ceiling. Daemons older than API 1.40 are not supported.
 
 ## Repeatable acceptance gate
